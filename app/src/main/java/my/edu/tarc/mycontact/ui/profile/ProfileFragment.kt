@@ -35,6 +35,11 @@ class ProfileFragment : Fragment(), MenuProvider {
     val profileViewModel: ProfileViewModel by viewModels()
     private lateinit var myPreference: SharedPreferences
 
+    val getContent = registerForActivityResult(ActivityResultContracts.GetContent()){
+        //it = path to the profile picture
+        binding.imageViewProfile.setImageURI(it)
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
     }
@@ -56,6 +61,8 @@ class ProfileFragment : Fragment(), MenuProvider {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         myPreference = requireActivity().getPreferences(Context.MODE_PRIVATE)
+
+        readProfilePicture()
 
         with(profileViewModel.profile.value) {
             this!!.name = myPreference.getString(getString(R.string.name), "").toString()
@@ -93,7 +100,13 @@ class ProfileFragment : Fragment(), MenuProvider {
                 )
                 apply()
             }
+            saveProfilePicture()
         }//End of buttonSave
+
+        binding.imageViewProfile.setOnClickListener {
+            getContent.launch("image/*")
+        }
+
 
     }//end of onViewCreated
 
@@ -110,4 +123,39 @@ class ProfileFragment : Fragment(), MenuProvider {
         return true
     }
 
-}
+    //when do the save
+    private fun saveProfilePicture() {
+        val filename = "profile.png"
+        //this.context?.filesDir = get the app file directory
+        val file = File(this.context?.filesDir, filename)
+
+        val bd = binding.imageViewProfile.getDrawable() as BitmapDrawable
+        val bitmap = bd.bitmap
+        val outputStream: OutputStream
+
+        try{
+            outputStream = FileOutputStream(file)
+            bitmap.compress(Bitmap.CompressFormat.PNG, 50, outputStream)
+            outputStream.flush()
+            outputStream.close()
+        }catch (e: FileNotFoundException){
+            e.printStackTrace()
+        }
+    }
+    //put add the onClickview or onViewCreated both also can
+    private fun readProfilePicture(){
+        val filename = "profile.png"
+        val file = File(this.context?.filesDir, filename)
+
+        try{
+            if(!file.exists()){
+                binding.imageViewProfile.setImageResource(R.drawable.profile)
+            }else{
+                val bitmap = BitmapFactory.decodeFile(file.absolutePath)
+                binding.imageViewProfile.setImageBitmap(bitmap)
+            }
+        }catch (e: FileNotFoundException){
+            e.printStackTrace()
+        }
+    }
+}//end of the class
